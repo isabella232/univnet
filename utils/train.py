@@ -117,7 +117,7 @@ def train(rank, args, chkpt_path, hp, hp_str):
         
         if rank == 0 and epoch % hp.log.validation_interval == 0:
             with torch.no_grad():
-                validate(hp, args, model_g, model_d, valloader, stft, writer, step, device)
+                validate(hp, args, model_g, model_d, valloader, dsp, writer, step, device)
 
         trainloader.dataset.shuffle_mapping()
         if rank == 0:
