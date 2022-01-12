@@ -8,7 +8,7 @@ from collections import Counter
 
 from utils.utils import read_wav_np
 from utils.stft import TacotronSTFT
-
+from utils.dsp import DSP
 
 def create_dataloader(hp, args, train, device):
     if train:
@@ -31,10 +31,20 @@ class MelFromDisk(Dataset):
         self.data_dir = data_dir
         metadata_path = os.path.join(data_dir, metadata_path)
         self.meta = self.load_metadata(metadata_path)
-        self.stft = TacotronSTFT(hp.audio.filter_length, hp.audio.hop_length, hp.audio.win_length,
-                                 hp.audio.n_mel_channels, hp.audio.sampling_rate,
-                                 hp.audio.mel_fmin, hp.audio.mel_fmax, center=False, device=device)
+        #self.stft = TacotronSTFT(hp.audio.filter_length, hp.audio.hop_length, hp.audio.win_length,
+        #                         hp.audio.n_mel_channels, hp.audio.sampling_rate,
+        #                         hp.audio.mel_fmin, hp.audio.mel_fmax, center=False, device=device)
 
+        self.dsp = DSP(
+            fmin=hp.audio.mel_fmin,
+            fmax=hp.audio.mel_fmax,
+            num_mels=hp.audio.n_mel_channels,
+            sample_rate=hp.audio.sampling_rate,
+            hop_length=hp.audio.hop_length,
+            n_fft=hp.audio.filter_length,
+            win_length=hp.audio.win_length,
+            peak_norm=False
+        )
         self.mel_segment_length = hp.audio.segment_length // hp.audio.hop_length
         self.shuffle = hp.train.spk_balanced
 
@@ -106,10 +116,9 @@ class MelFromDisk(Dataset):
                 wav = np.pad(wav, (0, self.hp.audio.segment_length + self.hp.audio.pad_short - len(wav)), \
                              mode='constant', constant_values=0.0)
 
-            wav = torch.from_numpy(wav).unsqueeze(0)
-            mel = self.stft.mel_spectrogram(wav)
-
-            mel = mel.squeeze(0)
+            #wav = torch.from_numpy(wav).unsqueeze(0)
+            mel = self.dsp.wav_to_mel(wav)
+            mel = torch.tensor(mel)
 
             torch.save(mel, melpath)
 
