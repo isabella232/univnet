@@ -17,8 +17,8 @@ def validate(hp, args, generator, discriminator, valloader, dsp, writer, step, d
 
         fake_audio = generator(mel, noise)[:,:,:audio.size(2)]
 
-        mel_fake = dsp.wav_to_mel(fake_audio.squeeze(1))
-        mel_real = dsp.wav_to_mel(audio.squeeze(1))
+        mel_fake = dsp.wav_to_mel(fake_audio.squeeze(1).cpu().numpy())
+        mel_real = dsp.wav_to_mel(audio.squeeze(1).cpu().numpy())
 
         mel_loss += F.l1_loss(mel_fake, mel_real).item()
 
