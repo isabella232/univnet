@@ -80,12 +80,15 @@ class MelFromDisk(Dataset):
         wavpath = os.path.join(self.data_dir, wavpath)
         sr, audio = read_wav_np(wavpath)
 
+        print(f'len audio {len(audio)}')
+
         if len(audio) < self.hp.audio.segment_length + self.hp.audio.pad_short:
             audio = np.pad(audio, (0, self.hp.audio.segment_length + self.hp.audio.pad_short - len(audio)), \
                     mode='constant', constant_values=0.0)
 
         audio = torch.from_numpy(audio).unsqueeze(0)
         mel = self.get_mel(wavpath)
+        print(f'mel size {mel.size()}')
 
         if self.train:
             max_mel_start = mel.size(1) - self.mel_segment_length -1
