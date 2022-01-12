@@ -103,11 +103,12 @@ class MelFromDisk(Dataset):
         melpath = wavpath.replace('.wav', '.mel')
         try:
             mel = torch.load(melpath, map_location='cpu')
+            assert mel.size(-1) > (self.hp.audio.segment_length + self.hp.audio.pad_short) / self.hp.audio.segment_length + 1
             assert mel.size(0) == self.hp.audio.n_mel_channels, \
                 'Mel dimension mismatch: expected %d, got %d' % \
                 (self.hp.audio.n_mel_channels, mel.size(0))
 
-        except (FileNotFoundError, RuntimeError, TypeError, AssertionError):
+        except (FileNotFoundError, RuntimeError, TypeError, AssertionError, Exception):
             sr, wav = read_wav_np(wavpath)
             assert sr == self.hp.audio.sampling_rate, \
                 'sample mismatch: expected %d, got %d at %s' % (self.hp.audio.sampling_rate, sr, wavpath)
