@@ -28,6 +28,7 @@ class DSP:
         self.fmax = fmax
 
     def wav_to_mel(self, y: np.array, normalize=True) -> np.array:
+        y = np.squeeze(y)
         spec = librosa.stft(
             y=y,
             n_fft=self.n_fft,
