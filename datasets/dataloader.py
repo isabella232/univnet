@@ -76,7 +76,7 @@ class MelFromDisk(Dataset):
         random.shuffle(self.mapping_weights)
 
     def my_getitem(self, idx):
-        wavpath = self.meta[idx]
+        wavpath = str(self.meta[idx])
         wavpath = os.path.join(self.data_dir, wavpath)
         sr, audio = read_wav_np(wavpath)
 
@@ -128,7 +128,7 @@ class MelFromDisk(Dataset):
         metadata = []
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
-                stripped = line.strip().split(split)
+                stripped = line.strip().split(split)[0]
                 metadata.append(stripped)
 
         return metadata
