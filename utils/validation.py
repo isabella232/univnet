@@ -20,6 +20,9 @@ def validate(hp, args, generator, discriminator, valloader, dsp, writer, step, d
         mel_fake = dsp.wav_to_mel(fake_audio.squeeze(1).cpu().numpy())
         mel_real = dsp.wav_to_mel(audio.squeeze(1).cpu().numpy())
 
+        mel_fake = torch.tensor(mel_fake).unsqueeze(0)
+        mel_real = torch.tensor(mel_real).unsqueeze(0)
+
         mel_loss += F.l1_loss(mel_fake, mel_real).item()
 
 
