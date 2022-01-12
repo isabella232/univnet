@@ -58,7 +58,7 @@ class MelFromDisk(Dataset):
             self.mapping_weights = torch.DoubleTensor(weights)
 
         elif train:
-            weights = [1.0 / len(self.meta) for _, _, _ in self.meta]
+            weights = [1.0 / len(self.meta) for _ in self.meta]
             self.mapping_weights = torch.DoubleTensor(weights)
 
 
@@ -76,7 +76,7 @@ class MelFromDisk(Dataset):
         random.shuffle(self.mapping_weights)
 
     def my_getitem(self, idx):
-        wavpath, _, _ = self.meta[idx]
+        wavpath = self.meta[idx]
         wavpath = os.path.join(self.data_dir, wavpath)
         sr, audio = read_wav_np(wavpath)
 
