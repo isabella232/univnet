@@ -12,6 +12,7 @@ import itertools
 import traceback
 
 from datasets.dataloader import create_dataloader
+from utils.dsp import DSP
 from utils.writer import MyWriter
 from utils.stft import TacotronSTFT
 from utils.stft_loss import MultiResolutionSTFTLoss
@@ -61,15 +62,17 @@ def train(rank, args, chkpt_path, hp, hp_str):
         logger = logging.getLogger()
         writer = MyWriter(hp, log_dir)
         valloader = create_dataloader(hp, args, False, device='cpu')
-        stft = TacotronSTFT(filter_length=hp.audio.filter_length,
-                            hop_length=hp.audio.hop_length,
-                            win_length=hp.audio.win_length,
-                            n_mel_channels=hp.audio.n_mel_channels,
-                            sampling_rate=hp.audio.sampling_rate,
-                            mel_fmin=hp.audio.mel_fmin,
-                            mel_fmax=hp.audio.mel_fmax,
-                            center=False,
-                            device=device)
+
+        dsp = DSP(
+            fmin=hp.audio.mel_fmin,
+            fmax=hp.audio.mel_fmax,
+            num_mels=hp.audio.n_mel_channels,
+            sample_rate=hp.audio.sampling_rate,
+            hop_length=hp.audio.hop_length,
+            n_fft=hp.audio.filter_length,
+            win_length=hp.audio.win_length,
+            peak_norm=False
+        )
 
     if chkpt_path is not None:
         if rank == 0:
