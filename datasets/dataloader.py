@@ -106,7 +106,7 @@ class MelFromDisk(Dataset):
         melpath = wavpath.replace('.wav', '.mel')
         try:
             mel = torch.load(melpath, map_location='cpu')
-            assert mel.size(-1) > (self.hp.audio.segment_length + self.hp.audio.pad_short) / self.hp.audio.segment_length + 1
+            assert mel.size(-1) > (self.hp.audio.segment_length + self.hp.audio.pad_short) / self.hp.audio.hop_length + 1
             assert mel.size(0) == self.hp.audio.n_mel_channels, \
                 'Mel dimension mismatch: expected %d, got %d' % \
                 (self.hp.audio.n_mel_channels, mel.size(0))
