@@ -25,6 +25,10 @@ def validate(hp, args, generator, discriminator, valloader, dsp, writer, step, d
 
         mel_loss += F.l1_loss(mel_fake, mel_real).item()
 
+        if idx < hp.log.num_audio:
+            audio = audio[0][0].cpu().detach().numpy()
+            fake_audio = fake_audio[0][0].cpu().detach().numpy()
+            writer.log_fig_audio(audio, fake_audio, None, None, idx, step)
 
     mel_loss = mel_loss / len(valloader.dataset)
 

@@ -26,16 +26,6 @@ class MyWriter(SummaryWriter):
             self.is_first = False
 
     def log_fig_audio(self, target, prediction, spec_fake, spec_real, idx, step):
-        if idx == 0:
-            spec_fake = librosa.amplitude_to_db(spec_fake, ref=np.max,top_db=80.)
-            spec_real = librosa.amplitude_to_db(spec_real, ref=np.max,top_db=80.)
-            self.add_image('spec/predicted', plot_spectrogram_to_numpy(spec_fake), step)
-            self.add_image('spec/error', plot_spectrogram_to_numpy(np.power(spec_real - spec_fake, 2)), step)
-            self.add_image('waveform/predicted', plot_waveform_to_numpy(prediction), step)
-            if self.is_first:
-                self.add_image('spec/target', plot_spectrogram_to_numpy(spec_real), step)
-                self.add_image('waveform/target', plot_waveform_to_numpy(target), step)
-
         self.add_audio('predicted/raw_audio_%d' % idx, prediction, step, self.sample_rate)
         if self.is_first:
             self.add_audio('target/raw_audio_%d' % idx, target, step, self.sample_rate)
