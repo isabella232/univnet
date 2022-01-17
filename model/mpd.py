@@ -1,61 +1,94 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.utils import weight_norm, spectral_norm
 
-class DiscriminatorP(nn.Module):
-    def __init__(self, hp, period):
-        super(DiscriminatorP, self).__init__()
 
-        self.LRELU_SLOPE = hp.mpd.lReLU_slope
-        self.period = period
+class Discriminator(nn.Module):
+    def __init__(self):
+        super(Discriminator, self).__init__()
 
-        kernel_size = hp.mpd.kernel_size
-        stride = hp.mpd.stride
-        norm_f = weight_norm if hp.mpd.use_spectral_norm == False else spectral_norm
-
-        self.convs = nn.ModuleList([
-            norm_f(nn.Conv2d(1, 64, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-            norm_f(nn.Conv2d(64, 128, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-            norm_f(nn.Conv2d(128, 256, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-            norm_f(nn.Conv2d(256, 512, (kernel_size, 1), (stride, 1), padding=(kernel_size // 2, 0))),
-            norm_f(nn.Conv2d(512, 1024, (kernel_size, 1), 1, padding=(kernel_size // 2, 0))),
+        self.discriminator = nn.ModuleList([
+            nn.Sequential(
+                nn.ReflectionPad1d(7),
+                nn.utils.weight_norm(nn.Conv1d(1, 16, kernel_size=15, stride=1)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.Sequential(
+                nn.utils.weight_norm(nn.Conv1d(16, 64, kernel_size=41, stride=4, padding=20, groups=4)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.Sequential(
+                nn.utils.weight_norm(nn.Conv1d(64, 256, kernel_size=41, stride=4, padding=20, groups=16)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.Sequential(
+                nn.utils.weight_norm(nn.Conv1d(256, 1024, kernel_size=41, stride=4, padding=20, groups=64)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.Sequential(
+                nn.utils.weight_norm(nn.Conv1d(1024, 1024, kernel_size=41, stride=4, padding=20, groups=256)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.Sequential(
+                nn.utils.weight_norm(nn.Conv1d(1024, 1024, kernel_size=5, stride=1, padding=2)),
+                nn.LeakyReLU(0.2, inplace=True),
+            ),
+            nn.utils.weight_norm(nn.Conv1d(1024, 1, kernel_size=3, stride=1, padding=1)),
         ])
-        self.conv_post = norm_f(nn.Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
 
     def forward(self, x):
-        fmap = []
-
-        # 1d to 2d
-        b, c, t = x.shape
-        if t % self.period != 0: # pad first
-            n_pad = self.period - (t % self.period)
-            x = F.pad(x, (0, n_pad), "reflect")
-            t = t + n_pad
-        x = x.view(b, c, t // self.period, self.period)
-
-        for l in self.convs:
-            x = l(x)
-            x = F.leaky_relu(x, self.LRELU_SLOPE)
-            fmap.append(x)
-        x = self.conv_post(x)
-        fmap.append(x)
-        x = torch.flatten(x, 1, -1)
-
-        return fmap, x
+        '''
+            returns: (list of 6 features, discriminator score)
+            we directly predict score without last sigmoid function
+            since we're using Least Squares GAN (https://arxiv.org/abs/1611.04076)
+        '''
+        features = list()
+        for module in self.discriminator:
+            x = module(x)
+            features.append(x)
+        return features[:-1], features[-1]
 
 
-class MultiPeriodDiscriminator(nn.Module):
-    def __init__(self, hp):
-        super(MultiPeriodDiscriminator, self).__init__()
+if __name__ == '__main__':
+    model = Discriminator()
+
+    x = torch.randn(3, 1, 22050)
+    print(x.shape)
+
+    features, score = model(x)
+    for feat in features:
+        print(feat.shape)
+    print(score.shape)
+
+    pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(pytorch_total_params)
+
+
+class Identity(nn.Module):
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
+
+
+class MultiScaleDiscriminator(nn.Module):
+    def __init__(self):
+        super(MultiScaleDiscriminator, self).__init__()
 
         self.discriminators = nn.ModuleList(
-            [DiscriminatorP(hp, period) for period in hp.mpd.periods]
+            [Discriminator() for _ in range(3)]
+        )
+
+        self.pooling = nn.ModuleList(
+            [Identity()] +
+            [nn.AvgPool1d(kernel_size=4, stride=2, padding=1, count_include_pad=False) for _ in range(1, 3)]
         )
 
     def forward(self, x):
         ret = list()
-        for disc in self.discriminators:
+
+        for pool, disc in zip(self.pooling, self.discriminators):
+            x = pool(x)
             ret.append(disc(x))
 
-        return ret  # [(feat, score), (feat, score), (feat, score), (feat, score), (feat, score)]
+        return ret  # [(feat, score), (feat, score), (feat, score)]

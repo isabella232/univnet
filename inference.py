@@ -10,13 +10,13 @@ from model.generator import Generator
 
 
 def main(args):
-    checkpoint = torch.load(args.checkpoint_path)
+    checkpoint = torch.load(args.checkpoint_path, map_location=torch.device('cpu'))
     if args.config is not None:
         hp = OmegaConf.load(args.config)
     else:
         hp = OmegaConf.create(checkpoint['hp_str'])
 
-    model = Generator(hp).cuda()
+    model = Generator(hp)
     saved_state_dict = checkpoint['model_g']
     new_state_dict = {}
     
@@ -33,7 +33,7 @@ def main(args):
             mel = torch.load(melpath)
             if len(mel.shape) == 2:
                 mel = mel.unsqueeze(0)
-            mel = mel.cuda()
+            mel = mel
 
             audio = model.inference(mel)
             audio = audio.cpu().detach().numpy()
