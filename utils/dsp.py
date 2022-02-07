@@ -42,7 +42,7 @@ class DSP:
             n_mels=self.n_mels,
             fmin=self.fmin,
             fmax=self.fmax)
-        return mel
+        return self.normalize(mel)
 
     def normalize(self, mel: np.array) -> np.array:
         mel = np.clip(mel, a_min=1.e-5, a_max=None)
